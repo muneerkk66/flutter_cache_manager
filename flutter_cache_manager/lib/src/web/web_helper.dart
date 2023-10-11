@@ -193,13 +193,15 @@ class WebHelper {
     final file = await _store.fileSystem.createFile(cacheObject.relativePath);
 
     try {
-      var receivedBytes = 0;
       final sink = file.openWrite();
-      await response.content.map((s) {
-        receivedBytes += s.length;
+      var receivedBytes = 0;
+      await for (var chunk in response.content) {
+        receivedBytes += chunk.length;
         receivedBytesResultController.add(receivedBytes);
-        return s;
-      }).pipe(sink);
+        sink.add(chunk);
+      }
+      await sink.flush();
+      await sink.close();
     } on Object catch (e, stacktrace) {
       receivedBytesResultController.addError(e, stacktrace);
     }
